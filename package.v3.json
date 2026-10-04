@@ -3,12 +3,13 @@
     "name": "Emby精准刷新增强",
     "description": "整理完成后按目标路径精准刷新 Emby 对应目录，支持忽略路径和事件防抖，不执行全库扫描。",
     "labels": "媒体服务器,Emby,整理",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "icon": "embyrefreshplus.png",
     "author": "Steven",
     "level": 1,
     "system_version": ">=3.0.0",
     "history": {
+      "v1.0.1": "美化插件图标，优化设置表单布局和字段间距。",
       "v1.0.0": "首次发布：整理事件监听、路径过滤、延迟合并和 Emby 项目级刷新。"
     }
   }

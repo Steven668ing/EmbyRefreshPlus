@@ -20,7 +20,7 @@ class EmbyRefreshPlus(_PluginBase):
     plugin_name = "Emby精准刷新增强"
     plugin_desc = "整理完成后仅刷新对应 Emby 媒体库目录，不执行全库扫描。"
     plugin_icon = "embyrefreshplus.png"
-    plugin_version = "1.0.0"
+    plugin_version = "1.0.1"
     plugin_author = "Steven"
     author_url = ""
     plugin_config_prefix = "embyrefreshplus_"
@@ -68,16 +68,44 @@ class EmbyRefreshPlus(_PluginBase):
 
     def get_form(self) -> tuple[list[dict], dict[str, Any]]:
         configs = get_mediaserver_configs()
-        embys = [{"title": c.name, "value": c.name} for c in configs
-                 if c.name and c.type == "emby"]
-        return [{"component": "VForm", "content": [
-            {"component": "VSwitch", "props": {"model": "enabled", "label": "启用插件"}},
-            {"component": "VSelect", "props": {"model": "mediaservers", "label": "Emby 媒体服务器",
-                "items": embys, "multiple": True, "chips": True, "clearable": True}},
-            {"component": "VTextField", "props": {"model": "delay", "label": "刷新延迟（秒）", "type": "number"}},
-            {"component": "VTextarea", "props": {"model": "ignore_paths", "label": "忽略路径（每行一个）", "rows": 4}},
-        ]}], {"enabled": False, "delay": 10, "mediaservers": [],
-              "ignore_paths": ["/media-115-CD2", "/media-115-strm"]}
+        embys = [
+            {"title": config.name, "value": config.name}
+            for config in configs
+            if config.name and config.type == "emby"
+        ]
+        fields = [
+            {"component": "VSwitch", "props": {
+                "model": "enabled", "label": "启用插件",
+            }},
+            {"component": "VSelect", "props": {
+                "model": "mediaservers", "label": "Emby 媒体服务器",
+                "items": embys, "multiple": True, "chips": True, "clearable": True,
+            }},
+            {"component": "VTextField", "props": {
+                "model": "delay", "label": "刷新延迟（秒）", "type": "number",
+            }},
+            {"component": "VTextarea", "props": {
+                "model": "ignore_paths", "label": "忽略路径（每行一个）", "rows": 3,
+                "autoGrow": True,
+            }},
+        ]
+        content = []
+        for field in fields:
+            content.append({
+                "component": "VRow",
+                "props": {"class": "mb-3", "dense": True},
+                "content": [{
+                    "component": "VCol",
+                    "props": {"cols": 12},
+                    "content": [field],
+                }],
+            })
+        return [{"component": "VForm", "content": content}], {
+            "enabled": False,
+            "delay": 10,
+            "mediaservers": [],
+            "ignore_paths": ["/media-115-CD2", "/media-115-strm"],
+        }
 
     def _is_ignored(self, path: str) -> bool:
         candidate = Path(path).as_posix().rstrip("/")
