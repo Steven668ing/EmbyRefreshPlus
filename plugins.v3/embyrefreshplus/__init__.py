@@ -35,6 +35,7 @@ class EmbyRefreshPlus(_PluginBase):
         self._ignored_paths = ["/media-115-CD2", "/media-115-strm"]
         self._pending: dict[str, set[str]] = {}
         self._timers: dict[str, threading.Timer] = {}
+        self._timer_tokens: dict[str, int] = {}
         self._lock = threading.RLock()
         self._generation = 0
 
@@ -106,14 +107,17 @@ class EmbyRefreshPlus(_PluginBase):
                 old = self._timers.get(name)
                 if old:
                     old.cancel()
-                timer = threading.Timer(self._delay, self._flush, args=(name, self._generation))
+                token = self._timer_tokens.get(name, 0) + 1
+                self._timer_tokens[name] = token
+                timer = threading.Timer(self._delay, self._flush, args=(name, self._generation, token))
                 timer.daemon = True
                 self._timers[name] = timer
                 timer.start()
 
-    def _flush(self, server_name: str, generation: int) -> None:
+    def _flush(self, server_name: str, generation: int, token: int) -> None:
         with self._lock:
-            if generation != self._generation or not self._enabled:
+            if (generation != self._generation or not self._enabled
+                    or token != self._timer_tokens.get(server_name)):
                 return
             paths = sorted(self._pending.pop(server_name, set()))
             self._timers.pop(server_name, None)
@@ -125,6 +129,8 @@ class EmbyRefreshPlus(_PluginBase):
             return
         emby = service.instance
         folders = getattr(emby, "folders", []) or []
+        # Multiple completed files often belong to the same Emby folder; refresh each item once.
+        refresh_targets: dict[str, tuple[str, str, list[str]]] = {}
         for path in paths:
             match = self._match_library(path, folders)
             if not match:
@@ -132,8 +138,12 @@ class EmbyRefreshPlus(_PluginBase):
                 continue
             library_name, matched_path, item_id = match
             logger.info(f"[EmbyRefreshPlus] 判断：{library_name}媒体库；目录：{matched_path}")
+            if item_id not in refresh_targets:
+                refresh_targets[item_id] = (library_name, matched_path, [])
+            refresh_targets[item_id][2].append(path)
+        for item_id, (library_name, matched_path, target_paths) in refresh_targets.items():
             ok = self._refresh_item(emby, item_id)
-            logger.info(f"[EmbyRefreshPlus] 执行刷新：{'成功' if ok else '失败'}；服务器：{server_name}；路径：{path}")
+            logger.info(f"[EmbyRefreshPlus] 执行刷新：{'成功' if ok else '失败'}；服务器：{server_name}；库：{library_name}；匹配目录：{matched_path}；合并路径数：{len(target_paths)}")
 
     @staticmethod
     def _match_library(target_path: str, folders: list[dict]) -> Optional[tuple[str, str, str]]:
@@ -173,5 +183,6 @@ class EmbyRefreshPlus(_PluginBase):
             for timer in self._timers.values():
                 timer.cancel()
             self._timers.clear()
+            self._timer_tokens.clear()
             self._pending.clear()
         self._enabled = False
