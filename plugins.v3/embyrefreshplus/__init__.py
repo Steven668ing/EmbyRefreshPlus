@@ -67,7 +67,7 @@ class EmbyRefreshPlus(_PluginBase):
 
     def get_form(self) -> tuple[list[dict], dict[str, Any]]:
         configs = get_mediaserver_configs()
-        embys = [{"title": c.name, "value": c.name} for c in configs.values()
+        embys = [{"title": c.name, "value": c.name} for c in configs
                  if c.name and c.type == "emby"]
         return [{"component": "VForm", "content": [
             {"component": "VSwitch", "props": {"model": "enabled", "label": "启用插件"}},
