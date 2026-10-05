@@ -1,4 +1,4 @@
-# Emby精准刷新增强（EmbyRefreshPlus）
+# MP-EmbyRefreshPlus（Emby 精准刷新增强）
 
 MoviePilot V3 插件：监听 `EventType.TransferComplete`，收集整理后的目标路径，忽略指定目录，并在延迟防抖后尝试仅刷新对应 Emby 目录项目。插件不调用 Emby 全库扫描接口。
 
